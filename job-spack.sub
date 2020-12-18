@@ -1,0 +1,52 @@
+#!/bin/bash -l
+#SBATCH --job-name="SP-C-AC"
+#SBATCH -w node1
+
+#SBATCH --exclusive
+#SBATCH --time=120:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --output=SPACK-%j.log
+#SBATCH --error=SPACK-%j.log
+
+
+
+source spack/share/spack/setup-env.sh
+
+spack install gcc
+spack load gcc
+spack compiler add 
+
+spack install python@3.6.7
+spack install python
+
+spack install openmpi
+spack load openmpi
+
+
+spack install papi
+spack load papi
+
+
+spack install boost@1.75.0
+spack load boost
+
+spack install libdwarf
+spack load libdwarf
+
+spack install binutils
+spack load binutils
+
+spack install elfutils
+spack load elfutils
+
+
+spack install dyninst &&
+spack load dyninst 
+
+
+
+
+
+
+
