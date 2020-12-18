@@ -23,65 +23,62 @@ int main(int argc, char *argv[])
         return 1;
     }
 	
-/* 	Creamos el process 																						*/
+/* 	Create process																						*/
 	BPatch_process *proc = BPatch.processCreate(argv[1], (const char**)(argv + 1));
 	
-/*	Comprobamos que realmente se haya creado 																*/
+/*	Check if it was created 																*/
 	assert(proc); 
 	
-/* 	Creamos la imagen del Mutatee para poder acceder cuando queramos 										*/
+/* 	Create image										*/
 	BPatch_image *image = proc->getImage();
 
-/*  Registramos la función de callback que se llamará después de acabar la ejecución 						*/
+/*  Register function callback */
 	BPatch.registerExitCallback( readCounter );
 	
-/* 	Creamos la variable 'counter' a partir del tipo int  													*/	
+/* 	Create counter variable													*/	
 	counter = proc->malloc(*image->findType("int") );
 	
-/*  Ponemos a cero el contador para luego insertarlo en el código del Mutatee
- *	para ello creamos una constante 0 y se la asignamos al counter  										*/
+
 	BPatch_constExpr zero(0);
 	BPatch_constExpr one(1);
 
-/*  Registramos la expresión que sumará 1 cada vez que encontremos un foo() y la que pone el contador a cero*/
+/*  Create expression to increase by one each time foo() is called*/
 	//BPatch_arithExpr addOne (BPatch_plus, *counter, one);
     BPatch_arithExpr initSnippet( BPatch_assign , *counter , zero );
 	
-/*	Hacemos primero la suma de 1 al contador y luego la asignación. 
-	Cada vez que se llame a addOne, se sumará 1 al contador													*/
+/*	First add 1 then assign. 
+	Each time addOne is called, the counter increases by 1													*/
 	BPatch_arithExpr plusOne(BPatch_plus, *counter, one);
 	BPatch_arithExpr addOne(BPatch_assign, *counter, plusOne);	
 	
-	// 	Estas dos sentencias se pueden reducir a la siguiente:
-	//	BPatch_arithExpr addOne(BPatch_assign,*counter,BPatch_arithExpr(BPatch_plus,*counter,BPatch_constExpr(1)));	
+	/
 
-/*  Buscamos el 'main' de la función con 'image' y lo guardamos en un vector 								*/
+/*  Look for 'main' in 'image' and save in a vector 								*/
 	BPatch_Vector<BPatch_function*> mainFuncs;
     image->findFunction( "main" , mainFuncs );
-	assert (mainFuncs.size() != 0); 			/* Comprobamos que hay un 'main' */  
-	BPatch_function *main = mainFuncs[0];		/* Asignamos el 'main' al puntero *main */  
+	assert (mainFuncs.size() != 0); 			/* Check if there is one 'main' */  
+	BPatch_function *main = mainFuncs[0];		/* Assign pointer to 'main' */  
 	
-/* 	Creamos una entrada a la función 'main' del Mutatee para poder insertar el snippet después 				*/
+
 	std::vector< BPatch_point * > *mainEntryPoints = main->findPoint( BPatch_locEntry );
     BPatch_point *mainEntry = (*mainEntryPoints)[0];
 	
-/*  Insertamos el snippet a la entrada de 'main'. Con 'BPatch_firstSnippet' y 'BPatch_lastSnippet'
- *  lo que hacemos es decir si queremos insertar el Snippet al principio o al final de la función 'main' 	*/
+
 	proc->insertSnippet( initSnippet, *mainEntry, BPatch_firstSnippet );
 
-/*  Creamos un nuevo vector de funciones para mirar cuántas veces llamamos a foo() 							*/
+
 	BPatch_Vector<BPatch_function*> fooFuncs;
     image->findFunction("foo", fooFuncs);
     assert ( fooFuncs.size() );
 
     BPatch_function *bp_foo = fooFuncs[0];
 	
-/*	Cramos de nuevo un vector de puntos de entrada, cogemos su Entry y le asignamos addOne 					*/
+
 	std::vector< BPatch_point * > *fooEntryPoints = bp_foo->findPoint( BPatch_locEntry );
     BPatch_point *fooEntry = (*fooEntryPoints)[0];	
 	proc->insertSnippet( addOne, *fooEntry, BPatch_firstSnippet );	
 
-/*  Continuamos con la ejecución hasta que esta acabe 														*/
+/*  Continue execution until the end 														*/
     proc->continueExecution();
     while (!proc->isTerminated())
         BPatch.waitForStatusChange();
